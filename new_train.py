@@ -1,17 +1,16 @@
-#! /usr/bin/env python
-
 import tensorflow as tf
 import numpy as np
 import os
 import time
 import datetime
+# import new
+# from new_text_cnn import new_text_cnn
 import data_helpers
 from text_cnn import TextCNN
 from tensorflow.contrib import learn
 
 # Parameters
-# ==================================================
-
+#====================================
 # Data loading params
 tf.flags.DEFINE_float("dev_sample_percentage", .1,
                       "Percentage of the training data to use for validation")
@@ -55,42 +54,42 @@ for attr, value in sorted(FLAGS.__flags.items()):
     print("{}={}".format(attr.upper(), value))
 print("")
 
-
 # Data Preparation
-# ==================================================
+#==================================
 
-# Load data
-print("Loading data...")
+# Load Data
+print('Loading data...')
 x_text, y = data_helpers.load_data_and_labels(
     FLAGS.positive_data_file, FLAGS.negative_data_file)
 
 # Build vocabulary
-max_document_length = max([len(x.split(" ")) for x in x_text])
-vocab_processor = learn.preprocessing.VocabularyProcessor(max_document_length)
+max_document_length = max([len(x.split(' ')) for x in x_text])
+vocab_processor = learn.preprocessing.VocabularyProcessor(max_document_length)          #important
 x = np.array(list(vocab_processor.fit_transform(x_text)))
 
 # Randomly shuffle data
 np.random.seed(10)
-shuffle_indices = np.random.permutation(np.arange(len(y)))
+shuffle_indices = np.random.permutation(np.arange(len(y)))      #important
 x_shuffled = x[shuffle_indices]
 y_shuffled = y[shuffle_indices]
 
 # Split train/test set
-# TODO: This is very crude, should use cross-validation
-dev_sample_index = -1 * int(FLAGS.dev_sample_percentage * float(len(y)))
+# TODO: This is very crude
+dev_sample_index = -1 * int(FLAGS.dev_sample_percentage * float(len(y)))     
 x_train, x_dev = x_shuffled[:dev_sample_index], x_shuffled[dev_sample_index:]
 y_train, y_dev = y_shuffled[:dev_sample_index], y_shuffled[dev_sample_index:]
-print("Vocabulary Size: {:d}".format(len(vocab_processor.vocabulary_)))
-print("Train/Dev split: {:d}/{:d}".format(len(y_train), len(y_dev)))
+print 'Vocabulary Size: {:d}'.format(len(vocab_processor.vocabulary_))
+print 'Train/Dev Split: {:d}/{:d}'.format(len(y_train), len(y_dev))
 
 
 # Training
-# ==================================================
+#===============================
 
 with tf.Graph().as_default():
     session_conf = tf.ConfigProto(
-        allow_soft_placement=FLAGS.allow_soft_placement,
-        log_device_placement=FLAGS.log_device_placement)
+        allow_soft_placement=FLAGS.allow_soft_placement
+        log_device_placement=FLAGS.log_device_placement
+    )
     sess = tf.Session(config=session_conf)
     with sess.as_default():
         cnn = TextCNN(
@@ -98,18 +97,18 @@ with tf.Graph().as_default():
             num_classes=y_train.shape[1],
             vocab_size=len(vocab_processor.vocabulary_),
             embedding_size=FLAGS.embedding_dim,
-            filter_sizes=list(map(int, FLAGS.filter_sizes.split(","))),
-            num_filters=FLAGS.num_filters,
-            l2_reg_lambda=FLAGS.l2_reg_lambda)
+            filter_sizes=list(map(int, FLAGS.filter_sizes.split(','))),   #important
+            num_filter=FLAGS.num_filters,
+            l2_reg_lambda=FLAGS.l2_reg_lambda
+        )
 
         # Define Training procedure
-        global_step = tf.Variable(0, name="global_step", trainable=False)
+        global_step = tf.Variable(0, name='global_step', trainable=False)
         optimizer = tf.train.AdamOptimizer(1e-3)
         grads_and_vars = optimizer.compute_gradients(cnn.loss)
         train_op = optimizer.apply_gradients(
             grads_and_vars, global_step=global_step)
 
-        # Keep track of gradient values and sparsity (optional)
         grad_summaries = []
         for g, v in grads_and_vars:
             if g is not None:
@@ -122,28 +121,28 @@ with tf.Graph().as_default():
         grad_summaries_merged = tf.summary.merge(grad_summaries)
 
         # Output directory for models and summaries
-        timestamp = str(int(time.time()))
+        tiemstamp = str(int(time.time()))
         out_dir = os.path.abspath(os.path.join(
-            os.path.curdir, "runs", timestamp))
-        print("Writing to {}\n".format(out_dir))
+            os.path.curdir, 'runs', tiemstamp))
+        print 'Writing to {}\n'.format(out_dir)
 
         # Summaries for loss and accuracy
-        loss_summary = tf.summary.scalar("loss", cnn.loss)
-        acc_summary = tf.summary.scalar("accuracy", cnn.accuracy)
+        loss_summary = tf.summary.scalar('loss', cnn.loss)
+        acc_summary = tf.summary.scalar('accuracy', cnn.accuracy)
 
         # Train Summaries
         train_summary_op = tf.summary.merge(
             [loss_summary, acc_summary, grad_summaries_merged])
-        train_summary_dir = os.path.join(out_dir, "summaries", "train")
+        train_summary_dir = os.path.join(out_dir, 'summaries', 'train')
         train_summary_writer = tf.summary.FileWriter(
             train_summary_dir, sess.graph)
 
         # Dev summaries
         dev_summary_op = tf.summary.merge([loss_summary, acc_summary])
-        dev_summary_dir = os.path.join(out_dir, "summaries", "dev")
-        dev_summary_writer = tf.summary.FileWriter(dev_summary_dir, sess.graph)
+        dev_summary_dir = os.path.join(out_dir, 'summaries', 'dev')
+        dev_summary_writer = tf.sumary.FileWriter(dev_summary_dir, sess.graph)
 
-        # Checkpoint directory. Tensorflow assumes this directory already exists so we need to create it
+        # Checkpoint directory
         checkpoint_dir = os.path.abspath(os.path.join(out_dir, "checkpoints"))
         checkpoint_prefix = os.path.join(checkpoint_dir, "model")
         if not os.path.exists(checkpoint_dir):
@@ -152,15 +151,12 @@ with tf.Graph().as_default():
                                max_to_keep=FLAGS.num_checkpoints)
 
         # Write vocabulary
-        vocab_processor.save(os.path.join(out_dir, "vocab"))
+        vocab_processor.save(os.path.join(out_dir, 'vocab'))
 
         # Initialize all variables
         sess.run(tf.global_variables_initializer())
 
         def train_step(x_batch, y_batch):
-            """
-            A single training step
-            """
             feed_dict = {
                 cnn.input_x: x_batch,
                 cnn.input_y: y_batch,
@@ -170,11 +166,11 @@ with tf.Graph().as_default():
                 [train_op, global_step, train_summary_op, cnn.loss, cnn.accuracy],
                 feed_dict)
             time_str = datetime.datetime.now().isoformat()
-            print("{}: step {}, loss {:g}, acc {:g}".format(
+            print('{}: step {}, loss {:g}, acc {:g}'.format(
                 time_str, step, loss, accuracy))
             train_summary_writer.add_summary(summaries, step)
 
-        def dev_step(x_batch, y_batch, writer=None):
+         def dev_step(x_batch, y_batch, writer=None):
             """
             Evaluates model on a dev set
             """

@@ -1,0 +1,70 @@
+tf.nn.max_pool(value, ksize, strides, padding, name=None)
+参数是四个，和卷积很类似：
+第一个参数value：需要池化的输入，一般池化层接在卷积层后面，所以输入通常是feature map，依然是[batch, height, width, channels]这样的shape
+
+第二个参数ksize：池化窗口的大小，取一个四维向量，一般是[1, height, width, 1]，因为我们不想在batch和channels上做池化，所以这两个维度设为了1
+#
+
+
+第三个参数strides：和卷积类似，窗口在每一个维度上滑动的步长，一般也是[1, stride,stride, 1]
+
+第四个参数padding：和卷积类似，可以取'VALID' 或者'SAME'
+
+返回一个Tensor，类型不变，shape仍然是[batch, height, width, channels]这种形式
+
+
+value: 一个4D张量，格式为[batch, height, width, channels]，与conv2d中input格式一样 
+ksize: 长为4的list,表示池化窗口的尺寸 
+strides: 池化窗口的滑动值，与conv2d中的一样 
+padding: 与conv2d中用法一样。
+
+
+import tensorflow as tf
+flags = tf.flags #flags是一个文件：flags.py，用于处理命令行参数的解析工作
+logging = tf.logging
+
+#调用flags内部的DEFINE_string函数来制定解析规则
+flags.DEFINE_string("para_name_1","default_val", "description")
+flags.DEFINE_bool("para_name_2","default_val", "description")
+
+#FLAGS是一个对象，保存了解析后的命令行参数
+FLAGS = flags.FLAGS
+def main(_):
+    FLAGS.para_name #调用命令行输入的参数
+
+if __name__ = "__main__": #使用这种方式保证了，如果此文件被其它文件import的时候，不会执行main中的代码
+    tf.app.run() #解析命令行参数，调用main函数 main(sys.argv)
+
+
+  # 因为卷积操作conv2d()需要输入的是四维数据，分别代表着批处理大小、宽度、高度、通道数。
+        # 而embedded_chars只有前三维，所以需要添加一维，设为1。变为：[None, sequence_length, embedding_size, 1]
+
+
+ # 池化，选取卷积结果的最大值pooled的尺寸为[None, 1,1,128]( 128 卷积核个数)
+
+ # ksize是将每height, width转化成一个像素
+
+                # pooled_outputs最终为一个长度为3的列表。每一个元素都是[None,1,1,128]的Tensor张量
+
+        # 对pooled_outputs在第四个维度上进行合并，变成一个[None,1,1,384]Tensor张量
+
+
+
+        # 全连接层计算输出向量(w*h+b)和预测(scores向量中的最大值即为预测结果)
+
+
+答: np.random.permutation与np.random.shuffle有两处不同：
+如果传给permutation一个矩阵，它会返回一个洗牌后的矩阵副本；而shuffle只是对一个矩阵进行洗牌，无返回值。 如果传入一个整数，它会返回一个洗牌后的arange。
+
+tf.contrib.learn.preprocessing.VocabularyProcessor (max_document_length, min_frequency=0, vocabulary=None, tokenizer_fn=None)
+参数：
+
+max_document_length: 文档的最大长度。如果文本的长度大于最大长度，那么它会被剪切，反之则用0填充。
+
+min_frequency: 词频的最小值，出现次数小于最小词频则不会被收录到词表中。
+
+vocabulary: CategoricalVocabulary 对象。
+
+tokenizer_fn：分词函数
+
+
